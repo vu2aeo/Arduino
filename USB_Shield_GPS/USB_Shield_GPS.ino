@@ -5,10 +5,15 @@
 /* CDC support */
 #include <cdcacm.h>
 #include <cdcprolific.h>
-// Satisfy IDE, which only needs to see the include statment in the ino.
-#ifdef dobogusinclude
-#include <spi4teensy3.h>
-#endif
+#include <TinyGPS.h>
+
+TinyGPS gps1;
+
+bool GPSUpdated = false;
+
+float flat, flon;
+
+long unsigned int fix_age;
 
 class PLAsyncOper : public CDCAsyncOper {
 public:
@@ -75,14 +80,28 @@ void loop() {
                         if(rcvd) { //more than zero bytes received
                             
                                      for(uint16_t i = 0; i < rcvd; i++) {
+                                       
+                                     //Now send chars from buf[] into the parser...
+                                     if(gps1.encode(buf[i]))
+                                     {
+                                       GPSUpdated = true;
+                                     } else GPSUpdated = false;
+                                     //Print chars from buf[] directly to serial interface for debugging 
+                                     //Serial.print((char)buf[i]); 
                                         
-                                          Serial.print((char)buf[i]); 
-                                        //printing on the screen
                                 }//for( uint16_t i=0; i < rcvd; i++...
                             
                         }//if( rcvd
                 }//if( read_delay > millis()...
         }//if( Usb.getUsbTaskState() == USB_STATE_RUNNING..
+        if(GPSUpdated = true)
+        {
+          gps1.f_get_position(&flat, &flon, &fix_age);
+          Serial.print("lat:");
+          Serial.print(flat);
+          Serial.print(",lon:");
+          Serial.println(flon);
+        } 
 }
 
 
