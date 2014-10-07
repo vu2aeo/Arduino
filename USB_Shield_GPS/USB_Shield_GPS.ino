@@ -87,21 +87,23 @@ void loop() {
                                        GPSUpdated = true;
                                      } else GPSUpdated = false;
                                      //Print chars from buf[] directly to serial interface for debugging 
-                                     //Serial.print((char)buf[i]); 
+                                     Serial.print((char)buf[i]); 
                                         
                                 }//for( uint16_t i=0; i < rcvd; i++...
                             
                         }//if( rcvd
                 }//if( read_delay > millis()...
         }//if( Usb.getUsbTaskState() == USB_STATE_RUNNING..
-        if(GPSUpdated = true)
-        {
-          gps1.f_get_position(&flat, &flon, &fix_age);
-          Serial.print("lat:");
-          Serial.print(flat);
-          Serial.print(",lon:");
-          Serial.println(flon);
-        } 
+        
+        
+//        if(GPSUpdated = true)
+//        {
+//          gps1.f_get_position(&flat, &flon, &fix_age);
+//          Serial.print("lat:");
+//          Serial.print(flat);
+//          Serial.print(",lon:");
+//          Serial.println(flon);
+//        } 
 }
 
 
