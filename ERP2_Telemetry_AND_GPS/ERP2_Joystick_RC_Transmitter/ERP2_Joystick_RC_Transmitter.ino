@@ -13,16 +13,15 @@
 int cePin = 9;
 int csPin = 10;
 
-//NRF24 Transmitter on Arduino Mega
-//
-//int cePin = 40;
-//int csPin = 53;
+//Txn status LED pin
+
+int LEDPin = 5;
 
 int joy_turnPin = A4;
 int joy_spdPin = A5;
 
 
-int txData[2];//create data packet
+float txData[2];//create data packet
 
 //init zero errors in both joystick axes
 
@@ -31,13 +30,14 @@ float spdErr = 0;
  
 RF24 radio(cePin,csPin);
  
-const uint64_t pipe = 0xE8E8F0F0E1LL;
+// Radio pipe addresses for the 2 nodes to communicate.
+const uint64_t pipe = 0xF0F0F0F0E1LL;
  
 void setup(void)
 {
   Serial.begin(9600);
-  radio.begin();
-  radio.openWritingPipe(pipe);
+  
+  SetupTransmitter();
   
   //To calibrate: read 100 values from joystick
  
@@ -63,6 +63,46 @@ void setup(void)
  
 }
 
+void SetupTransmitter()
+{
+
+  // Setup and configure rf radio
+
+  radio.begin();
+  
+  radio.setDataRate(RF24_2MBPS);//data rate
+  
+  radio.setPALevel(RF24_PA_MAX); //txn power output
+
+  radio.setRetries(15,15);
+
+  radio.setPayloadSize(32);
+  
+  radio.setChannel(100); //set the channel to use
+  
+  radio.openWritingPipe(pipe);
+    
+  //radio.openReadingPipe(2,pipe);
+
+  radio.startListening();
+
+  radio.printDetails();
+}
+
+boolean TransmitData()
+{
+    radio.stopListening();
+    
+    bool ok = radio.write(txData, sizeof(txData));
+    
+    // Now, continue listening
+    radio.startListening();
+    
+    return ok;
+
+}
+
+
 float removeError(float val, float err)
 {
   if (err > 0) 
@@ -73,7 +113,7 @@ float removeError(float val, float err)
    
 }
 
-void CreateMotorCommands(float spd, float turn, int* mCmd)
+void CreateMotorCommands(float spd, float turn, float* mCmd)
 {
 
        if(turn < -50.0) //turn left
@@ -133,10 +173,12 @@ void loop()
   Serial.print("\t ,RIGHT Motor:");
   Serial.println(txData[1]);  
         
-//transmit over the radio link
-  radio.write(txData, sizeof(txData));
+  //transmit over the radio link
+  boolean txnOK = TransmitData();
   
-  delay(500);//repeat every 20 milliseconds
+  if(txnOK) digitalWrite(LEDPin,HIGH); else digitalWrite(LEDPin,LOW);
+  
+  delay(100);//repeat every 20 milliseconds
 
 }
 

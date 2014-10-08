@@ -10,10 +10,10 @@
 //D4 - D5 = Pins 4,5,6,7
 //LiquidCrystal lcd1(8, 9, 4, 5, 6, 7);
 
-//Setup NRF24 Receiver on Arduino Mega
+//Setup NRF24 Receiver on Arduino 
 
-int cePin = 40;
-int csPin = 53;
+int cePin = 9;
+int csPin = 10;
 
 //create BOMotorPair
 
@@ -27,22 +27,66 @@ int csPin = 53;
 
 //BOMotorPair ERP2_Drive = BOMotorPair(m1p1, m1p2, m1PWM, m2p1, m2p2, m2PWM);
 
+//radio connect status LED
+
+int LEDPin = 5;
  
-int motorSpd[2];
+float motorSpd[2];
  
 RF24 radio(cePin,csPin);
 
-const uint64_t pipe = 0xE8E8F0F0E1LL;
+// Radio pipe addresses for the 2 nodes to communicate.
+const uint64_t pipe = 0xF0F0F0F0E1LL;
  
 void setup(void)
 {
   Serial.begin(9600);
-  radio.begin();
-  radio.openReadingPipe(1,pipe);
-  radio.startListening();
+  
+  SetupReceiver();
   
   //lcd1.begin(16,2);
 }
+
+void SetupReceiver()
+{
+   // Setup and configure rf radio
+
+  radio.begin();
+  
+  radio.setDataRate(RF24_2MBPS);//data rate
+  
+  radio.setPALevel(RF24_PA_MAX); //txn power output
+
+  radio.setRetries(15,15);
+
+  radio.setPayloadSize(32);
+  
+  radio.setChannel(100);//set the channel to use
+
+  radio.openReadingPipe(1,pipe);
+
+  radio.startListening();
+
+  //radio.printDetails();
+
+}
+
+boolean NewIncomingData()
+{
+        boolean done = false;
+          
+        if(radio.available())
+        {
+          while(!done)
+          {
+            done = radio.read(motorSpd,sizeof(motorSpd));
+  
+          }
+        } 
+        
+        return done;
+}
+
 
 //void UpdateLCD(int* motorCmd)
 //{
@@ -54,24 +98,17 @@ void setup(void)
  
 void loop(void)
 {
-  if ( radio.available() )
+  if ( NewIncomingData() )
   {
-    Serial.println("Radio is available");
-    // Dump the payloads until we've gotten everything
-    bool done = false;
-    while (!done)
-    {
-      // Fetch the payload
-      Serial.println("Receiving....");
-      
-      done = radio.read(motorSpd, sizeof(motorSpd));
-      
+          
     Serial.print("Received Motor Commands, LEFT:");
     Serial.print(motorSpd[0]);
     Serial.print("\t Right:");
     Serial.println(motorSpd[1]);
+    
+    digitalWrite(LEDPin,HIGH);
   
-    }
+  } else digitalWrite(LEDPin,LOW);
     
     //write to serial monitor for debugging
 //    Serial.print("Received Motor Commands, LEFT:");
@@ -86,14 +123,6 @@ void loop(void)
     //turn the motors
       
     //ERP2_Drive.MoveWheelsIndependently(motorSpd[0],motorSpd[1]);
-  } 
-    else //if the radio was not found
-  {
-    //stop the ERP2 from driving around aimlessly 
-    Serial.println("Radio Error!");
-    //ERP2_Drive.Stop();
-  }
   
-
 }
 
